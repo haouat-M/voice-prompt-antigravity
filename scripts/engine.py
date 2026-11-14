@@ -114,6 +114,7 @@ def apply_fixes(text, custom_fixes=None):
     return res
 
 def record_and_transcribe(language="ar-SA", timeout=180, silence_seconds=3.2, custom_fixes=None):
+    import numpy as np
     import sounddevice as sd
     import speech_recognition as sr
 
