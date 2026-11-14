@@ -108,23 +108,47 @@ function setInstallingStatus() {
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
 }
 
+/**
+ * Cross-platform Python resolver:
+ * Works smoothly on Windows, Linux, Ubuntu, macOS, and WSL.
+ */
 function resolvePythonPath(configuredPath) {
     if (configuredPath && configuredPath.trim() !== '') {
-        return configuredPath.trim();
-    }
-    const candidates = [
-        'C:\\Python314\\python.exe',
-        'C:\\Python313\\python.exe',
-        'C:\\Python312\\python.exe',
-        'C:\\Python311\\python.exe',
-        'C:\\Python310\\python.exe'
-    ];
-    for (const c of candidates) {
-        if (fs.existsSync(c)) {
-            return c;
+        const trimmed = configuredPath.trim();
+        // If configured path exists on the current OS filesystem, use it
+        if (fs.existsSync(trimmed)) {
+            return trimmed;
         }
     }
-    return 'python';
+
+    if (process.platform === 'win32') {
+        const candidates = [
+            'C:\\Python314\\python.exe',
+            'C:\\Python313\\python.exe',
+            'C:\\Python312\\python.exe',
+            'C:\\Python311\\python.exe',
+            'C:\\Python310\\python.exe'
+        ];
+        for (const c of candidates) {
+            if (fs.existsSync(c)) {
+                return c;
+            }
+        }
+        return 'python';
+    } else {
+        // Linux / macOS / Ubuntu: python3 is the standard binary
+        const unixCandidates = [
+            '/usr/bin/python3',
+            '/usr/local/bin/python3',
+            '/opt/homebrew/bin/python3'
+        ];
+        for (const u of unixCandidates) {
+            if (fs.existsSync(u)) {
+                return u;
+            }
+        }
+        return 'python3';
+    }
 }
 
 async function ensureDependencies(context) {
@@ -165,8 +189,12 @@ async function installRequiredPackages(pyPath) {
                 vscode.window.showInformationMessage("✅ Voice Prompt dependencies successfully installed! You can now speak anytime.");
                 resolve(true);
             } else {
+                const msg = process.platform === 'linux'
+                    ? `Failed to auto-install dependencies: ${stderr || err.message}. On Linux/Ubuntu, ensure libportaudio2 is installed: sudo apt install -y python3-pip libportaudio2 && pip install SpeechRecognition sounddevice numpy`
+                    : `Failed to auto-install dependencies: ${stderr || err.message}. Please run: pip install SpeechRecognition sounddevice numpy in terminal.`;
+
                 vscode.window.showErrorMessage(
-                    `Failed to auto-install dependencies: ${stderr || err.message}. Please run: pip install SpeechRecognition sounddevice numpy in terminal.`,
+                    msg,
                     "Copy Pip Command"
                 ).then(selection => {
                     if (selection === "Copy Pip Command") {
@@ -185,9 +213,7 @@ async function startRecording(context) {
     const config = vscode.workspace.getConfiguration('antigravityVoice');
     const pythonPath = resolvePythonPath(config.get('pythonPath'));
     const language = config.get('language') || 'ar-SA';
-    // Increased default silence tolerance to 3.2s to support relaxed natural speech without cutting off
     const silenceSeconds = config.get('silenceSeconds') || 3.2;
-    // Increased timeout to 180s (3 minutes) to support long dictations
     const timeout = config.get('timeout') || 180;
     const customFixes = config.get('customFixes') || [];
 
@@ -295,12 +321,9 @@ async function handleTranscribedText(text, config) {
     const target = config.get('target') || 'antigravity';
     const autoSend = config.get('autoSend') || false;
 
-    // Smart spacing check: ensure leading space so it doesn't glue to existing text
-    // E.g. "existing" + " new voice" => "existing new voice"
     const textToInsert = text.trim();
     const spacedText = " " + textToInsert;
 
-    // Always copy clean text to clipboard as safe backup
     await vscode.env.clipboard.writeText(textToInsert);
 
     if (target === 'antigravity') {
@@ -326,12 +349,10 @@ async function handleTranscribedText(text, config) {
                 await vscode.commands.executeCommand("antigravity.addContext", [spacedText]);
                 injected = true;
             } catch (e2) {
-                // Clipboard fallback: put spaced text in clipboard, paste, then restore clean clipboard
                 try {
                     await vscode.env.clipboard.writeText(spacedText);
                     await vscode.commands.executeCommand("editor.action.clipboardPasteAction");
                     injected = true;
-                    // Restore clipboard to clean text
                     await vscode.env.clipboard.writeText(textToInsert);
                 } catch (e3) {}
             }

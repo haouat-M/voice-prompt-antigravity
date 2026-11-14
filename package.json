@@ -114,8 +114,8 @@
         },
         "antigravityVoice.pythonPath": {
           "type": "string",
-          "default": "C:\\Python314\\python.exe",
-          "description": "Path to Python executable"
+          "default": "",
+          "description": "Path to Python executable (leave empty for auto-detection on Windows/Linux/macOS)"
         },
         "antigravityVoice.customFixes": {
           "type": "array",
