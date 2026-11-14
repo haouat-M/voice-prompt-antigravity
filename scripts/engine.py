@@ -7,7 +7,6 @@ import json
 import wave
 import argparse
 import threading
-import numpy as np
 
 # Force UTF-8 encoding on Windows to prevent charmap codec errors
 if sys.platform == "win32":
