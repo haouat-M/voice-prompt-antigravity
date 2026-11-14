@@ -2,7 +2,7 @@
   "name": "voice-prompt-antigravity",
   "displayName": "Voice Prompt for Antigravity",
   "description": "Fast voice input for Antigravity IDE chat prompt with Arabic and English developer terms support.",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "publisher": "antigravity-community",
   "engines": {
     "vscode": "^1.80.0"
@@ -12,6 +12,14 @@
     "Other",
     "Machine Learning"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haouat-M/voice-prompt-antigravity.git"
+  },
+  "bugs": {
+    "url": "https://github.com/haouat-M/voice-prompt-antigravity/issues"
+  },
+  "homepage": "https://github.com/haouat-M/voice-prompt-antigravity#readme",
   "keywords": [
     "voice",
     "speech-to-text",
@@ -34,6 +42,10 @@
         "command": "antigravityVoice.toggleRecording",
         "title": "Voice Prompt: Start / Stop Voice Recording",
         "icon": "$(mic)"
+      },
+      {
+        "command": "antigravityVoice.installDependencies",
+        "title": "Voice Prompt: Check & Install Audio Dependencies"
       },
       {
         "command": "antigravityVoice.selectLanguage",

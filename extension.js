@@ -1,11 +1,12 @@
 const vscode = require('vscode');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 let statusBarItem;
 let recordingProcess = null;
 let isRecording = false;
+let isInstallingDeps = false;
 let lastTranscribedText = "";
 
 function activate(context) {
@@ -18,15 +19,30 @@ function activate(context) {
 
     // 2. Register Toggle Command
     const toggleCmd = vscode.commands.registerCommand('antigravityVoice.toggleRecording', async () => {
+        if (isInstallingDeps) {
+            vscode.window.showInformationMessage("Voice Prompt: Installing required dependencies in the background, please wait a moment...");
+            return;
+        }
+
         if (isRecording) {
             stopRecording();
         } else {
-            startRecording(context);
+            // Check and ensure dependencies exist before recording
+            const ready = await ensureDependencies(context);
+            if (ready) {
+                startRecording(context);
+            }
         }
     });
     context.subscriptions.push(toggleCmd);
 
-    // 3. Register Copy Last Text Command
+    // 3. Register Install Dependencies Command (Can also be triggered manually)
+    const installCmd = vscode.commands.registerCommand('antigravityVoice.installDependencies', async () => {
+        await installRequiredPackages();
+    });
+    context.subscriptions.push(installCmd);
+
+    // 4. Register Copy Last Text Command
     const copyCmd = vscode.commands.registerCommand('antigravityVoice.copyLastText', async () => {
         if (lastTranscribedText) {
             await vscode.env.clipboard.writeText(lastTranscribedText);
@@ -37,10 +53,10 @@ function activate(context) {
     });
     context.subscriptions.push(copyCmd);
 
-    // 4. Register Select Language Command
+    // 5. Register Select Language Command
     const langCmd = vscode.commands.registerCommand('antigravityVoice.selectLanguage', async () => {
         const languages = [
-            { label: '🇸🇦 العربية (Arabic - Default)', code: 'ar-SA' },
+            { label: '🇸🇦 العربية (Arabic - Saudi Arabia / Default)', code: 'ar-SA' },
             { label: '🇪🇬 العربية (Arabic - Egypt)', code: 'ar-EG' },
             { label: '🇲🇦 العربية (Arabic - Maghreb)', code: 'ar-MA' },
             { label: '🇺🇸 English (United States)', code: 'en-US' },
@@ -68,7 +84,6 @@ function setIdleStatus() {
     isRecording = false;
     const config = vscode.workspace.getConfiguration('antigravityVoice');
     const lang = config.get('language') || 'ar-SA';
-    // Clean minimal icon only
     statusBarItem.text = `$(mic)`;
     statusBarItem.tooltip = `Voice Prompt for Antigravity (Language: ${lang})\n• Click or press Ctrl+Alt+A to speak\n• Speaks naturally with automatic technical term fixes`;
     statusBarItem.backgroundColor = undefined;
@@ -76,32 +91,103 @@ function setIdleStatus() {
 
 function setRecordingStatus() {
     isRecording = true;
-    // Sleek red icon only - no long disruptive text
     statusBarItem.text = `$(record)`;
     statusBarItem.tooltip = `Listening... Click or press Ctrl+Alt+A when done speaking`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
 }
 
 function setProcessingStatus() {
-    // Sleek spinning icon only
     statusBarItem.text = `$(sync~spin)`;
     statusBarItem.tooltip = `Transcribing and auto-converting tech terms...`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
 }
 
+function setInstallingStatus() {
+    statusBarItem.text = `$(cloud-download~spin)`;
+    statusBarItem.tooltip = `Installing required audio packages (SpeechRecognition, sounddevice, numpy)...`;
+    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+}
+
 function resolvePythonPath(configuredPath) {
-    if (configuredPath && fs.existsSync(configuredPath)) {
-        return configuredPath;
+    if (configuredPath && configuredPath.trim() !== '') {
+        return configuredPath.trim();
     }
-    const sysPython = 'C:\\Python314\\python.exe';
-    if (fs.existsSync(sysPython)) {
-        return sysPython;
+    // Check standard Windows python installation paths
+    const candidates = [
+        'C:\\Python314\\python.exe',
+        'C:\\Python313\\python.exe',
+        'C:\\Python312\\python.exe',
+        'C:\\Python311\\python.exe',
+        'C:\\Python310\\python.exe'
+    ];
+    for (const c of candidates) {
+        if (fs.existsSync(c)) {
+            return c;
+        }
     }
-    const venvPython = 'C:\\Users\\alladdinexpress\\.antigravity-mic\\venv\\Scripts\\python.exe';
-    if (fs.existsSync(venvPython)) {
-        return venvPython;
-    }
+    // Default system python in PATH
     return 'python';
+}
+
+/**
+ * Checks whether required packages (speech_recognition, sounddevice, numpy) are installed.
+ * If missing, automatically installs them in background.
+ */
+async function ensureDependencies(context) {
+    const config = vscode.workspace.getConfiguration('antigravityVoice');
+    const pythonPath = resolvePythonPath(config.get('pythonPath'));
+
+    return new Promise((resolve) => {
+        const checkCmd = `"${pythonPath}" -c "import speech_recognition, sounddevice, numpy; print('READY')"`;
+        exec(checkCmd, { env: process.env }, async (err, stdout) => {
+            if (!err && stdout && stdout.includes('READY')) {
+                // All libraries are already installed and verified!
+                resolve(true);
+            } else {
+                // Missing dependencies -> trigger automatic background installation
+                const installed = await installRequiredPackages(pythonPath);
+                resolve(installed);
+            }
+        });
+    });
+}
+
+/**
+ * Installs required audio packages quietly via pip.
+ */
+async function installRequiredPackages(pyPath) {
+    if (isInstallingDeps) return false;
+    isInstallingDeps = true;
+    setInstallingStatus();
+
+    const config = vscode.workspace.getConfiguration('antigravityVoice');
+    const pythonPath = pyPath || resolvePythonPath(config.get('pythonPath'));
+
+    vscode.window.setStatusBarMessage("🎙️ Setting up Voice dependencies (SpeechRecognition, sounddevice, numpy)...", 6000);
+
+    return new Promise((resolve) => {
+        const installCmd = `"${pythonPath}" -m pip install --quiet SpeechRecognition sounddevice numpy`;
+
+        exec(installCmd, { env: process.env }, (err, stdout, stderr) => {
+            isInstallingDeps = false;
+            setIdleStatus();
+
+            if (!err) {
+                vscode.window.showInformationMessage("✅ Voice Prompt dependencies successfully installed! You can now speak anytime.");
+                resolve(true);
+            } else {
+                vscode.window.showErrorMessage(
+                    `Failed to auto-install dependencies: ${stderr || err.message}. Please run: pip install SpeechRecognition sounddevice numpy in terminal.`,
+                    "Copy Pip Command"
+                ).then(selection => {
+                    if (selection === "Copy Pip Command") {
+                        vscode.env.clipboard.writeText("pip install SpeechRecognition sounddevice numpy");
+                    }
+                });
+                resolve(false);
+            }
+        });
+    });
 }
 
 async function startRecording(context) {
