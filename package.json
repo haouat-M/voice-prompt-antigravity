@@ -1,0 +1,116 @@
+{
+  "name": "voice-prompt-antigravity",
+  "displayName": "Voice Prompt for Antigravity",
+  "description": "Fast voice input for Antigravity IDE chat prompt with Arabic and English developer terms support.",
+  "version": "1.4.2",
+  "publisher": "antigravity-community",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "voice",
+    "speech-to-text",
+    "antigravity",
+    "prompt",
+    "microphone",
+    "dictation",
+    "arabic",
+    "hands-free"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "*",
+    "onStartupFinished",
+    "onCommand:antigravityVoice.toggleRecording"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "antigravityVoice.toggleRecording",
+        "title": "Voice Prompt: Start / Stop Voice Recording",
+        "icon": "$(mic)"
+      },
+      {
+        "command": "antigravityVoice.selectLanguage",
+        "title": "Voice Prompt: Select Preferred Input Language"
+      },
+      {
+        "command": "antigravityVoice.copyLastText",
+        "title": "Voice Prompt: Copy Last Transcribed Text"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "antigravityVoice.toggleRecording",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "antigravityVoice.toggleRecording",
+          "group": "navigation",
+          "when": "true"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "antigravityVoice.toggleRecording",
+          "group": "navigation@0",
+          "when": "view == antigravity.panel"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Voice Prompt for Antigravity",
+      "properties": {
+        "antigravityVoice.target": {
+          "type": "string",
+          "default": "antigravity",
+          "enum": [
+            "antigravity",
+            "activeEditor",
+            "clipboard"
+          ],
+          "enumDescriptions": [
+            "Direct injection into Antigravity Chat Prompt editor",
+            "Insert text at cursor position in active code editor",
+            "Copy to system clipboard only"
+          ],
+          "description": "Target destination for transcribed voice prompt"
+        },
+        "antigravityVoice.autoSend": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically send prompt to Antigravity immediately after speaking"
+        },
+        "antigravityVoice.language": {
+          "type": "string",
+          "default": "ar-SA",
+          "description": "Speech recognition language code (e.g. ar-SA, en-US, fr-FR, de-DE)"
+        },
+        "antigravityVoice.silenceSeconds": {
+          "type": "number",
+          "default": 2.2,
+          "description": "Seconds of silence before finishing recording (allows natural breathing and thinking pauses)"
+        },
+        "antigravityVoice.pythonPath": {
+          "type": "string",
+          "default": "C:\\Python314\\python.exe",
+          "description": "Path to Python executable"
+        },
+        "antigravityVoice.customFixes": {
+          "type": "array",
+          "default": [],
+          "description": "Custom phonetic replacement rules, e.g. [ [\"كلمة\", \"EnglishTerm\"] ]"
+        }
+      }
+    }
+  }
+}
