@@ -112,7 +112,6 @@ function resolvePythonPath(configuredPath) {
     if (configuredPath && configuredPath.trim() !== '') {
         return configuredPath.trim();
     }
-    // Check standard Windows python installation paths
     const candidates = [
         'C:\\Python314\\python.exe',
         'C:\\Python313\\python.exe',
@@ -125,14 +124,9 @@ function resolvePythonPath(configuredPath) {
             return c;
         }
     }
-    // Default system python in PATH
     return 'python';
 }
 
-/**
- * Checks whether required packages (speech_recognition, sounddevice, numpy) are installed.
- * If missing, automatically installs them in background.
- */
 async function ensureDependencies(context) {
     const config = vscode.workspace.getConfiguration('antigravityVoice');
     const pythonPath = resolvePythonPath(config.get('pythonPath'));
@@ -141,10 +135,8 @@ async function ensureDependencies(context) {
         const checkCmd = `"${pythonPath}" -c "import speech_recognition, sounddevice, numpy; print('READY')"`;
         exec(checkCmd, { env: process.env }, async (err, stdout) => {
             if (!err && stdout && stdout.includes('READY')) {
-                // All libraries are already installed and verified!
                 resolve(true);
             } else {
-                // Missing dependencies -> trigger automatic background installation
                 const installed = await installRequiredPackages(pythonPath);
                 resolve(installed);
             }
@@ -152,9 +144,6 @@ async function ensureDependencies(context) {
     });
 }
 
-/**
- * Installs required audio packages quietly via pip.
- */
 async function installRequiredPackages(pyPath) {
     if (isInstallingDeps) return false;
     isInstallingDeps = true;
@@ -196,7 +185,10 @@ async function startRecording(context) {
     const config = vscode.workspace.getConfiguration('antigravityVoice');
     const pythonPath = resolvePythonPath(config.get('pythonPath'));
     const language = config.get('language') || 'ar-SA';
-    const silenceSeconds = config.get('silenceSeconds') || 2.2;
+    // Increased default silence tolerance to 3.2s to support relaxed natural speech without cutting off
+    const silenceSeconds = config.get('silenceSeconds') || 3.2;
+    // Increased timeout to 180s (3 minutes) to support long dictations
+    const timeout = config.get('timeout') || 180;
     const customFixes = config.get('customFixes') || [];
 
     const scriptPath = path.join(context.extensionPath, 'scripts', 'engine.py');
@@ -206,7 +198,7 @@ async function startRecording(context) {
         '--action', 'record',
         '--language', language,
         '--silence', silenceSeconds.toString(),
-        '--timeout', '90'
+        '--timeout', timeout.toString()
     ];
 
     if (customFixes && customFixes.length > 0) {
@@ -303,8 +295,13 @@ async function handleTranscribedText(text, config) {
     const target = config.get('target') || 'antigravity';
     const autoSend = config.get('autoSend') || false;
 
-    // Always copy to clipboard as safe backup
-    await vscode.env.clipboard.writeText(text);
+    // Smart spacing check: ensure leading space so it doesn't glue to existing text
+    // E.g. "existing" + " new voice" => "existing new voice"
+    const textToInsert = text.trim();
+    const spacedText = " " + textToInsert;
+
+    // Always copy clean text to clipboard as safe backup
+    await vscode.env.clipboard.writeText(textToInsert);
 
     if (target === 'antigravity') {
         let injected = false;
@@ -320,18 +317,22 @@ async function handleTranscribedText(text, config) {
 
         await new Promise(r => setTimeout(r, 80));
 
-        // 2. Add text directly to Antigravity Prompt Editor
+        // 2. Add text directly to Antigravity Prompt Editor with smart prepended space
         try {
-            await vscode.commands.executeCommand("antigravity.addContext", text);
+            await vscode.commands.executeCommand("antigravity.addContext", spacedText);
             injected = true;
         } catch (e) {
             try {
-                await vscode.commands.executeCommand("antigravity.addContext", [text]);
+                await vscode.commands.executeCommand("antigravity.addContext", [spacedText]);
                 injected = true;
             } catch (e2) {
+                // Clipboard fallback: put spaced text in clipboard, paste, then restore clean clipboard
                 try {
+                    await vscode.env.clipboard.writeText(spacedText);
                     await vscode.commands.executeCommand("editor.action.clipboardPasteAction");
                     injected = true;
+                    // Restore clipboard to clean text
+                    await vscode.env.clipboard.writeText(textToInsert);
                 } catch (e3) {}
             }
         }
@@ -344,19 +345,28 @@ async function handleTranscribedText(text, config) {
             } catch (e) {}
         }
 
-        vscode.window.setStatusBarMessage(`✅ ${text}`, 4000);
+        vscode.window.setStatusBarMessage(`✅ ${textToInsert}`, 4000);
     } else if (target === 'activeEditor') {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
+            const pos = editor.selection.active;
+            const doc = editor.document;
+            let prefix = "";
+            if (pos.character > 0) {
+                const charBefore = doc.getText(new vscode.Range(pos.translate(0, -1), pos));
+                if (!/\s/.test(charBefore)) {
+                    prefix = " ";
+                }
+            }
             await editor.edit(editBuilder => {
-                editBuilder.insert(editor.selection.active, text + ' ');
+                editBuilder.insert(pos, prefix + textToInsert + " ");
             });
-            vscode.window.setStatusBarMessage(`✅ Inserted: "${text}"`, 4000);
+            vscode.window.setStatusBarMessage(`✅ Inserted: "${textToInsert}"`, 4000);
         } else {
-            vscode.window.setStatusBarMessage(`✅ Copied: "${text}"`, 4000);
+            vscode.window.setStatusBarMessage(`✅ Copied: "${textToInsert}"`, 4000);
         }
     } else {
-        vscode.window.setStatusBarMessage(`✅ Copied: "${text}"`, 4000);
+        vscode.window.setStatusBarMessage(`✅ Copied: "${textToInsert}"`, 4000);
     }
 }
 

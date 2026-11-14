@@ -2,7 +2,7 @@
   "name": "voice-prompt-antigravity",
   "displayName": "Voice Prompt for Antigravity",
   "description": "Fast voice input for Antigravity IDE chat prompt with Arabic and English developer terms support.",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "publisher": "antigravity-community",
   "engines": {
     "vscode": "^1.80.0"

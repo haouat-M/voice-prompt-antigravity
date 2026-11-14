@@ -59,90 +59,80 @@ RAW_TERMS = [
     (r"رياكت جي اس|رياكت جي إس|رياكت", "React"),
     (r"انجلر|أنجولار|انغولار", "Angular"),
     (r"نكست جي اس|نكست جي إس|نكست", "Next.js"),
-    (r"نوكست جي اس|نوكست", "Nuxt.js"),
-    (r"نوفيل|لارافيل|لارافل|لاريفيل", "Laravel"),
-    (r"تيلويند|تيلوند|تلويند|تلويند سي اس اس", "Tailwind CSS"),
-    (r"بوتستراب|بوت ستراب", "Bootstrap"),
-    (r"جانجو|ديجانجو|دي جانجو", "Django"),
-    (r"فلاسك", "Flask"),
-    (r"فاست اي بي اي|فاست اب اي", "FastAPI"),
-    (r"اكسبريس|إكسبريس", "Express.js"),
-    (r"نست جي اس|نست", "NestJS"),
+    (r"تايلوند|تيلويند", "Tailwind CSS"),
+    (r"بوتستراب|بوت سكراب", "Bootstrap"),
     
-    # Programming Languages
-    (r"بايثون|بيثون|بايثن", "Python"),
+    # Runtimes & Languages
+    (r"بايثون|بيثون", "Python"),
+    (r"بي اتش بي|بي إتش بي", "PHP"),
+    (r"نود جي اس|نود جي إس|نود", "Node.js"),
     (r"جافا سكريبت|جافاسكريبت", "JavaScript"),
     (r"تايب سكريبت|تايبسكريبت", "TypeScript"),
-    (r"نود جي اس|نود جي إس|نود", "Node.js"),
-    (r"بي اتش بي|بي إتش بي", "PHP"),
-    (r"اتش تي ام ال|إتش تي إم إل|اتش تي ام ال فايف", "HTML"),
-    (r"سي اس اس|سي إس إس|سي اس اس ثري", "CSS"),
-    (r"سي بلس بلس", "C++"),
-    (r"سي شارب", "C#"),
-    (r"جافا", "Java"),
-    (r"راست|رست", "Rust"),
-    (r"جو لانج|جولانج", "Go"),
-    (r"فلاتر|فلوتر", "Flutter"),
-    (r"دارت", "Dart"),
     
-    # Databases & Caching
-    (r"ماي اس كيو ال|ماي إس كيو إل|ماي سيكول", "MySQL"),
-    (r"بوستجري|بوستجرس|بوستجريس", "PostgreSQL"),
-    (r"سيكولايت|اس كيو لايت", "SQLite"),
-    (r"اس كيو ال|إس كيو إل|سيكول", "SQL"),
-    (r"مونجو|مونجو دي بي", "MongoDB"),
+    # Databases
+    (r"ماي اس كيو ال|ماي اسكيو ال|مايسكوال", "MySQL"),
+    (r"بوستجريس|بوستجرس|بوستغري", "PostgreSQL"),
+    (r"مونجو دي بي|مونغو دي بي|مونجو", "MongoDB"),
     (r"ريديس|ريدس", "Redis"),
-    (r"سوبابيس|سوبا بيز", "Supabase"),
-    (r"فايربيس|فاير بيس", "Firebase"),
+    (r"اس كيو لايت|سيكوال لايت", "SQLite"),
     
-    # Web Servers & Infra
-    (r"اباتشي|أباتشي", "Apache"),
-    (r"انجكس|انجن اكس|إنجن إكس|انجنكس|انجينكس", "Nginx"),
-    (r"سيرفر|سيرفرات", "server"),
-    (r"فرونت اند|فرونت إند", "Frontend"),
-    (r"باك اند|باك إند", "Backend"),
-    (r"فول ستاك|فل ستاك", "Fullstack"),
-    (r"ويب هوك|ويب هوكس", "Webhook"),
-    (r"ميدل وير|ميدلوير", "middleware"),
-    (r"كومبوننت|كومبوننتس|كمبوننت", "Component"),
-    (r"ريفاكتور|ريفاكتورينج", "refactor"),
+    # Development Concepts
+    (r"تيرمينال|ترمينال", "terminal"),
     (r"ديباج|ديباجينج|ديبوق", "debug"),
-    (r"تيرمنال|الترمينال|تيرمينال", "terminal"),
+    (r"فرونت اند|فرونت إند", "frontend"),
+    (r"باك اند|باك إند", "backend"),
+    (r"فول ستاك|فل ستاك", "fullstack"),
+    (r"داتا بيز|داتابيز", "database"),
+    (r"سيرفر|سيرفرات", "server"),
+    (r"كاش|كاشينج", "cache"),
+    (r"اوتوميشن|أوتوميشن", "automation"),
+    (r"ورك فلو|ويرك فلو", "workflow"),
+    (r"في اس كود|فياسكود", "VS Code")
 ]
 
-DEFAULT_RULES = [make_term_rule(regex_str, term) for regex_str, term in RAW_TERMS]
+COMPILED_RULES = [make_term_rule(pattern, eng) for pattern, eng in RAW_TERMS]
 
 def apply_fixes(text, custom_fixes=None):
-    rules = list(DEFAULT_RULES)
-    if custom_fixes:
-        for item in custom_fixes:
-            if isinstance(item, (list, tuple)) and len(item) >= 2:
-                pattern_str = item[0]
-                term = item[1]
-                rules.insert(0, make_term_rule(re.escape(pattern_str), term))
-    
-    for pat, repl in rules:
-        text = pat.sub(repl, text)
-    return text.strip()
+    if not text:
+        return text
 
-def record_and_transcribe(language="ar-SA", timeout=90, silence_seconds=2.2, custom_fixes=None):
+    res = text
+    for pattern, repl in COMPILED_RULES:
+        res = pattern.sub(repl, res)
+
+    if custom_fixes and isinstance(custom_fixes, list):
+        for item in custom_fixes:
+            try:
+                ar = item.get("ar", "")
+                en = item.get("en", "")
+                if ar and en:
+                    pat, rep = make_term_rule(re.escape(ar), en)
+                    res = pat.sub(rep, res)
+            except Exception:
+                pass
+
+    res = re.sub(r'\s+', ' ', res).strip()
+    return res
+
+def record_and_transcribe(language="ar-SA", timeout=180, silence_seconds=3.2, custom_fixes=None):
     import sounddevice as sd
     import speech_recognition as sr
 
     sample_rate = 16000
     channels = 1
     block_size = 1024
-    # Lower threshold slightly so natural breathing/soft speech is not cut prematurely
-    silence_threshold = 0.014
+
+    # Tuned for natural long dictation:
+    # 0.009 threshold prevents cutting off soft/distant voice or mid-sentence pauses
+    silence_threshold = 0.009
+    chunk_duration = block_size / sample_rate
+    max_silent_chunks = int(silence_seconds / chunk_duration)
+    min_speech_chunks = int(0.5 / chunk_duration)
 
     recorded_chunks = []
-    stop_event = threading.Event()
-    silent_chunks_count = 0
     speech_detected = False
-    
-    chunks_per_sec = int(sample_rate / block_size)
-    max_silent_chunks = int(chunks_per_sec * silence_seconds)
-    min_speech_chunks = int(chunks_per_sec * 0.3)
+    silent_chunks_count = 0
+    stop_event = threading.Event()
 
     def listen_stdin():
         try:
@@ -235,8 +225,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fast Arabic Voice Transcriber")
     parser.add_argument("--action", choices=["record", "test"], default="record")
     parser.add_argument("--language", type=str, default="ar-SA")
-    parser.add_argument("--timeout", type=int, default=90)
-    parser.add_argument("--silence", type=float, default=2.2)
+    parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--silence", type=float, default=3.2)
     parser.add_argument("--custom-fixes-json", type=str, default="")
 
     args = parser.parse_args()
