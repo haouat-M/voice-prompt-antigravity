@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.4.3-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.4.4-green.svg)]()
 
 Fast, zero-latency hands-free voice dictation extension for **Antigravity IDE**.
 
@@ -24,14 +24,14 @@ Speak your prompts directly into the Antigravity Chat Prompt box with high-accur
 ## 🚀 How to Install
 
 ### Step 1: Download & Install VSIX
-1. Download the latest release `voice-prompt-antigravity-1.4.3.vsix` from the [Releases page](https://github.com/haouat-M/voice-prompt-antigravity/releases).
+1. Download the latest release `voice-prompt-antigravity-1.4.4.vsix` from the [Releases page](https://github.com/haouat-M/voice-prompt-antigravity/releases).
 2. In Antigravity IDE:
    - Press `Ctrl+Shift+P`
    - Type: `Extensions: Install from VSIX...`
    - Select the downloaded `.vsix` file.
    - Or run in terminal:
      ```bash
-     antigravity-ide --install-extension voice-prompt-antigravity-1.4.3.vsix
+     antigravity-ide --install-extension voice-prompt-antigravity-1.4.4.vsix
      ```
 
 ### Step 2: Use Immediately (Zero Configuration)
