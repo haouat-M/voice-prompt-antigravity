@@ -113,7 +113,11 @@
           "default": 2.2,
           "description": "Seconds of silence before finishing recording (allows natural breathing and thinking pauses)"
         },
-        "antigravityVoice.pythonPath": {
+        "antigravityVoice.timeout": {
+          "type": "number",
+          "default": 180,
+          "description": "Maximum recording time in seconds before automatic stop"
+        },        "antigravityVoice.pythonPath": {
           "type": "string",
           "default": "",
           "description": "Path to Python executable (leave empty for auto-detection on Windows/Linux/macOS)"

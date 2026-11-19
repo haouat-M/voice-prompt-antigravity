@@ -48,9 +48,11 @@ Accessible via `Settings -> Extensions -> Voice Prompt for Antigravity`:
 |---|---|---|
 | `antigravityVoice.language` | `ar-SA` | Spoken voice input language code (`ar-SA`, `ar-EG`, `en-US`, `fr-FR`, etc.) |
 | `antigravityVoice.silenceSeconds` | `2.2` | Seconds of silence after which recording automatically finishes |
-| `antigravityVoice.target` | `antigravity` | Insertion target (`antigravity` chat prompt or `activeEditor`) |
+| `antigravityVoice.target` | `antigravity` | Insertion target (`antigravity` chat prompt, `activeEditor`, or `clipboard`) |
 | `antigravityVoice.autoSend` | `false` | Automatically submits the prompt after speech is transcribed |
 | `antigravityVoice.pythonPath` | `""` | Optional custom path to Python executable (auto-detected if blank) |
+| `antigravityVoice.timeout` | `180` | Maximum recording time in seconds before automatic stop |
+| `antigravityVoice.customFixes` | `[]` | Custom spoken-to-English replacements, e.g. `[["كلمة","EnglishTerm"]]` |
 
 ---
 
